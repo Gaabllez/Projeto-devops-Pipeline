@@ -38,7 +38,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Configurar o GitHub Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
 
       # Publica somente a pasta public/. Testes, scripts e configs nunca vao ao ar.
       - name: Empacotar o site
