@@ -42,7 +42,7 @@ jobs:
 
       # Publica somente a pasta public/. Testes, scripts e configs nunca vao ao ar.
       - name: Empacotar o site
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: public
 
