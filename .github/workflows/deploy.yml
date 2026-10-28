@@ -1,0 +1,51 @@
+name: CD - Publicacao do Site
+
+# Roda a cada push na main (merge de PR) e sob demanda.
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Nunca cancela uma publicacao em andamento, mas enfileira apenas a mais recente.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  validar:
+    uses: ./.github/workflows/validate.yml
+
+  deploy:
+    name: Fase 3 - Publicar no GitHub Pages
+    needs: validar
+    # Mesmo disparado manualmente, so publica a partir da main.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Baixar o codigo
+        uses: actions/checkout@v4
+
+      - name: Configurar o GitHub Pages
+        uses: actions/configure-pages@v5
+
+      # Publica somente a pasta public/. Testes, scripts e configs nunca vao ao ar.
+      - name: Empacotar o site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+      - name: Publicar
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,22 @@
+name: CI - Validacao e Testes
+
+# Roda em Pull Requests para a main e sob demanda (aba Actions > Run workflow).
+# Nao ha gatilho de push: um PR vindo de uma branch de feature disparava a CI duas
+# vezes (uma por push e outra por pull_request) com o mesmo resultado.
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Um novo commit no mesmo PR cancela a execucao anterior, que ja ficou desatualizada.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validar:
+    uses: ./.github/workflows/validate.yml

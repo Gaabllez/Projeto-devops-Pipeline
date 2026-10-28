@@ -1,0 +1,37 @@
+name: Validar e testar (reutilizavel)
+
+# Workflow reutilizavel: nao roda sozinho, e chamado pelo ci.yml e pelo deploy.yml.
+# Assim as fases de validacao ficam definidas em um unico lugar.
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  validar-e-testar:
+    name: Validar e testar
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Baixar o codigo
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          # Sem dependencias por enquanto, entao nao ha o que guardar em cache.
+          # Ao adicionar pacotes ao package.json, inclua aqui: cache: "npm"
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Fase 1 - Validar HTML
+        run: npm run lint:html
+
+      - name: Fase 1 - Validar CSS
+        run: npm run lint:css
+
+      - name: Fase 2 - Testes automatizados
+        run: npm test
