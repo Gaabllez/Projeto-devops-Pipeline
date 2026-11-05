@@ -68,7 +68,7 @@ test("informa a linha correta do erro", () => {
 const validVariants = [
   ["@media com regras dentro", "@media (max-width: 600px) { .a { color: red; } .b { margin: 0; } }"],
   ["@import e @charset", '@charset "utf-8";\n@import url("a.css");\n.a { color: red; }'],
-  ["propriedades personalizadas (--x)", ":root { --cor: #fff; --vazio:; } .a { color: var(--cor); }"],
+  ["propriedades personalizadas (--x)", ":root { --cor: #ea0c0c; --vazio:; } .a { color: var(--cor); }"],
   ["última declaração sem ;", ".a { color: red }"],
   ["!important", ".a { color: red !important; }"],
   ["comentário com { } ; dentro", ".a { /* { } ; ( */ color: red; }"],
