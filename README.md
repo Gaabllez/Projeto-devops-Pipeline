@@ -1,110 +1,152 @@
-# Projeto DevOps — CI/CD com GitHub Actions
+# PingFlow CI/CD — Pipeline de Conectividade e Publicação
 
-<!-- Troque SEU_USUARIO pelo seu usuário do GitHub (e o nome do repositório, se for diferente). -->
-![CI](https://github.com/SEU_USUARIO/projeto-devops-ci-cd/actions/workflows/ci.yml/badge.svg?event=pull_request)
-![CD](https://github.com/SEU_USUARIO/projeto-devops-ci-cd/actions/workflows/deploy.yml/badge.svg)
+![Ping](https://github.com/Gaabllez/Ping-test-pipeline-/actions/workflows/ping.yml/badge.svg)
+![CI](https://github.com/Gaabllez/Ping-test-pipeline-/actions/workflows/ci.yml/badge.svg?event=pull_request)
+![CD](https://github.com/Gaabllez/Ping-test-pipeline-/actions/workflows/deploy.yml/badge.svg)
 
-## Sobre
-Projeto acadêmico demonstrativo de integração contínua (CI), testes automatizados e publicação contínua (CD) usando GitHub Actions e GitHub Pages.
+Projeto acadêmico de DevOps que demonstra automação com **GitHub Actions**, testes de conectividade, validação de código, testes automatizados e publicação contínua de um site estático no **GitHub Pages**.
 
-O site em si é uma página estática simples (`public/`); o foco do projeto é a **pipeline** que valida, testa e publica essa página.
+O repositório reúne duas frentes complementares: uma pipeline de conectividade (ICMP e HTTPS) e uma pipeline de CI/CD para validar e publicar o site de demonstração.
+
+## Objetivos
+
+- Automatizar verificações de conectividade com o GitHub.
+- Validar a estrutura do HTML e a sintaxe do CSS.
+- Executar testes automatizados com o test runner nativo do Node.js.
+- Bloquear a publicação quando as validações ou os testes falharem.
+- Publicar automaticamente o conteúdo de `public/` no GitHub Pages.
 
 ## Tecnologias
-- HTML5 e CSS3
-- Node.js (validadores e testes, sem dependências externas)
+
 - Git e GitHub
 - GitHub Actions
+- Ubuntu Linux e Bash
+- Node.js 22 ou superior
+- HTML5 e CSS3
+- `ping` (ICMP) e `curl` (HTTPS)
 - GitHub Pages
 
+## Workflows
+
+| Workflow | Quando executa | O que faz |
+|---|---|---|
+| `ping.yml` | Push na `main` ou execução manual | Verifica a estrutura do workflow, testa conectividade ICMP e HTTPS com o GitHub. |
+| `ci.yml` | Pull Request para `main` ou execução manual | Chama o workflow reutilizável de validação e executa lint e testes. |
+| `validate.yml` | Quando chamado por outro workflow | Instala as dependências, valida HTML/CSS e executa os testes automatizados. |
+| `deploy.yml` | Push na `main` ou execução manual | Executa as validações e, se tudo passar, publica `public/` no GitHub Pages. |
+
+### Pipeline de conectividade
+
+O workflow `ping.yml` executa as seguintes etapas:
+
+1. Obtém o código do repositório.
+2. Exibe informações da execução (repositório, branch, commit e autor).
+3. Confere se a estrutura básica do workflow existe.
+4. Tenta quatro pacotes ICMP para `github.com`. Se não houver resposta, registra um aviso e continua, pois alguns ambientes bloqueiam ICMP.
+5. Faz uma requisição HTTPS para `https://github.com/` com `curl`. Essa etapa é obrigatória e reprova a execução se a requisição falhar.
+6. Exibe uma mensagem de encerramento.
+
+### CI: validação e testes
+
+A CI é iniciada em Pull Requests direcionados à branch `main`. O workflow `ci.yml` reutiliza `validate.yml`, evitando duplicar a definição das etapas.
+
+- **Lint HTML:** verifica estrutura, tags, atributos e regras básicas de acessibilidade.
+- **Lint CSS:** verifica blocos, declarações, delimitadores e cores hexadecimais.
+- **Testes:** executa a suíte automatizada com `node --test`.
+
+### CD: publicação
+
+O workflow `deploy.yml` é iniciado em push na `main` ou manualmente. A publicação depende da aprovação da validação e dos testes. Somente a pasta `public/` é enviada ao GitHub Pages; scripts, testes e configurações não são publicados.
+
 ## Estrutura do projeto
+
 ```text
 .
-├── public/                  # o site (é só esta pasta que vai ao ar)
+├── .github/
+│   ├── dependabot.yml
+│   └── workflows/
+│       ├── ping.yml
+│       ├── ci.yml
+│       ├── validate.yml
+│       └── deploy.yml
+├── public/
 │   ├── index.html
 │   └── style.css
 ├── scripts/
-│   ├── lint-html.js         # comando: npm run lint:html
-│   ├── lint-css.js          # comando: npm run lint:css
-│   └── lib/                 # validadores de HTML e CSS
-├── tests/                   # testes automatizados (node:test)
-├── .github/
-│   ├── dependabot.yml       # mantém as versões das actions atualizadas
-│   └── workflows/
-│       ├── validate.yml     # fases 1 e 2 (reutilizável)
-│       ├── ci.yml           # CI: roda nos Pull Requests
-│       └── deploy.yml       # CD: valida e publica no Pages
-├── .gitignore
-└── package.json
+│   ├── lint-html.js
+│   ├── lint-css.js
+│   └── lib/
+│       ├── html-lint.js
+│       ├── css-lint.js
+│       ├── lines.js
+│       └── run-lint.js
+├── tests/
+├── package.json
+├── package-lock.json
+└── README.md
 ```
 
-## Pipeline
-A validação é definida **uma única vez** em `validate.yml` (workflow reutilizável) e chamada pela CI e pela CD.
+## Executar localmente
 
-| Fase | O que faz | Comando local |
-|---|---|---|
-| 1 | Valida o HTML (estrutura, tags, atributos) e o CSS (sintaxe) | `npm run lint` |
-| 2 | Executa os testes automatizados | `npm test` |
-| 3 | Publica a pasta `public/` no GitHub Pages (só na CD) | — |
-
-- **`ci.yml`** roda em Pull Requests para `main` e manualmente (aba *Actions → Run workflow*). Executa as fases 1 e 2.
-- **`deploy.yml`** roda a cada push na `main` (ou seja, após o merge de um PR) e manualmente. Executa as fases 1 e 2 e, se passarem, a fase 3. Só publica a partir da `main`.
-
-> A CI não roda em push de branches de feature: o Pull Request já a dispara, e rodar nos dois gerava a mesma execução em duplicidade.
-
-### O que a Fase 1 verifica
-- **HTML:** `<!DOCTYPE html>`, `lang`, `charset` UTF-8, `viewport`, `<title>` preenchido, um `<main>`, um único `<h1>` e hierarquia de títulos sem saltos; tags fechadas e aninhadas corretamente; atributos sem aspas soltas nem repetidos; `id` únicos; `<img>` com `alt`; elementos obsoletos.
-- **CSS:** chaves e parênteses com par, comentários e textos entre aspas fechados, blocos com seletor, declarações no formato `propriedade: valor`, `;` faltando e cores hexadecimais válidas.
-
-### O que a Fase 2 verifica
-- **Conteúdo do site:** `public/` com `index.html` e `style.css` não vazios, página em `pt-BR`, título/descrição/`h1` preenchidos, seções com título, todos os arquivos locais referenciados existem (ex.: o link para `style.css`) e as classes usadas no HTML existem no CSS.
-- **Os próprios validadores:** há um teste para cada defeito conhecido (h1 removido, tag mal fechada, CSS quebrado, `style.css` apagado etc.) e testes de que HTML/CSS válidos **não** são reprovados. Se alguém enfraquecer um validador, a pipeline avisa.
-
-## Testar localmente
-Requer Node.js 22 ou superior (o Node 20 já saiu de suporte).
+Requisitos: Node.js 22 ou superior e npm.
 
 ```bash
-npm ci            # instala (não há dependências externas)
-npm run lint      # fase 1: valida HTML e CSS
-npm test          # fase 2: testes
-npm run check     # tudo de uma vez: lint + testes
+npm ci
+npm run lint:html
+npm run lint:css
+npm test
 ```
 
-Para ver o site no navegador, abra `public/index.html` ou rode um servidor local:
+Para executar todas as verificações em sequência:
 
 ```bash
-python3 -m http.server --directory public 8000   # depois acesse http://localhost:8000
+npm run check
 ```
 
-Para validar outro arquivo ou pasta: `node scripts/lint-html.js caminho/do/arquivo.html`.
+Para abrir o site localmente, execute na raiz do projeto:
 
-## Fluxo GitFlow para demonstração
-1. Criar uma branch de funcionalidade: `git switch -c feature/melhora-site`
-2. Fazer uma alteração em `public/index.html` ou `public/style.css`.
-3. Conferir localmente: `npm run check`
-4. Registrar: `git add .` e `git commit -m "feat: melhora o site"`
-5. Enviar: `git push -u origin feature/melhora-site`
-6. No GitHub, abrir um Pull Request da branch `feature/melhora-site` para `main` (é o PR que dispara a CI).
-7. Conferir se a CI passou.
-8. Fazer o merge do Pull Request.
-9. Conferir a execução da CD (aba *Actions*) e abrir o site publicado.
+```bash
+python -m http.server 8000 --directory public
+```
 
-### Demonstrar a CI falhando
-Em uma branch de teste, estrague o HTML de propósito — por exemplo, apague o `<main>` ou um `</section>` de `public/index.html` — e abra o PR. A Fase 1 deve reprovar apontando o arquivo, a linha e a regra, e o botão de merge fica bloqueado quando a proteção da `main` (abaixo) está ativa.
+Depois, acesse `http://localhost:8000` no navegador.
+
+## Como testar no GitHub
+
+1. Crie uma branch para a alteração: `git switch -c feature/minha-alteracao`.
+2. Faça a alteração no projeto.
+3. Execute `npm run check` localmente.
+4. Registre e envie a branch:
+   ```bash
+   git add .
+   git commit -m "feat: descreve a alteracao"
+   git push -u origin feature/minha-alteracao
+   ```
+5. Abra um Pull Request de `feature/minha-alteracao` para `main`.
+6. Na aba **Actions** ou na seção **Checks** do Pull Request, confira a execução da CI.
+7. Após a aprovação, faça o merge. O push na `main` inicia a pipeline de conectividade e a CD.
+8. Confira a publicação na aba **Actions** e em **Settings → Pages**.
+
+### Testar uma falha de validação
+
+Em uma branch de teste, faça uma alteração inválida no HTML (por exemplo, remova o elemento `<main>`), execute `npm run check` e confirme que a validação reprova. Não faça essa alteração diretamente na `main`.
 
 ## Configurar o GitHub Pages
-A publicação usa as actions oficiais do GitHub (`upload-pages-artifact` e `deploy-pages`), **sem** a branch `gh-pages`. Antes da primeira execução da CD:
 
-1. No repositório, abra **Settings → Pages**.
-2. Em **Build and deployment → Source**, escolha **GitHub Actions**.
-3. Dê push na `main` (ou rode a CD manualmente). O endereço do site aparece no resumo da execução e em **Settings → Pages**.
+Na primeira publicação:
 
-## Proteger a branch `main`
-Para que ninguém publique sem passar pela CI:
+1. Abra **Settings → Pages** no repositório.
+2. Em **Build and deployment → Source**, selecione **GitHub Actions**.
+3. Faça merge de um Pull Request na `main` ou inicie manualmente o workflow **CD - Publicacao do Site**.
+4. Consulte o endereço publicado no resumo da execução ou em **Settings → Pages**.
 
-1. Abra **Settings → Rules → Rulesets** (ou **Branches → Add branch protection rule**) e crie uma regra para a branch `main`.
-2. Ative **Require a pull request before merging**.
-3. Ative **Require status checks to pass** e selecione o check da CI. Ele aparece com o nome `validar / Validar e testar` (confira o nome exato na aba *Checks* de um PR; o check só aparece na busca depois de ter rodado ao menos uma vez).
+## Observações técnicas
 
-## Observações
-- Os validadores de HTML e CSS (`scripts/lib/`) são próprios e **sem dependências**, de propósito: o projeto instala instantaneamente e a lógica fica fácil de explicar. Eles cobrem os erros estruturais mais comuns, mas **não substituem** o validador oficial do W3C nem ferramentas completas como `html-validate` e `stylelint`. Para trocar por elas: `npm install --save-dev html-validate stylelint` e ajuste os scripts `lint:html` e `lint:css` no `package.json`.
-- O Dependabot (`.github/dependabot.yml`) abre um Pull Request quando uma action usada nos workflows tem versão nova.
+- A ausência de resposta ao `ping` não reprova a pipeline: redes e servidores podem bloquear tráfego ICMP. O teste HTTPS com `curl` é a verificação obrigatória de conectividade.
+- Os validadores de HTML e CSS são implementações didáticas próprias, sem dependências externas. Eles cobrem regras estruturais selecionadas e não substituem validadores completos, como os serviços do W3C ou ferramentas especializadas.
+- O Dependabot verifica mensalmente atualizações das GitHub Actions utilizadas nos workflows.
+- Para proteger a branch `main`, configure uma regra em **Settings → Rules → Rulesets** exigindo Pull Request e aprovação dos checks da CI. O nome exato do check pode ser conferido na seção **Checks** de um Pull Request após a primeira execução.
+
+## Objetivo acadêmico
+
+Demonstrar, na prática, conceitos de DevOps e integração/entrega contínuas: automação de tarefas, execução em runners Linux, validação de código, testes automatizados, controle de versões e publicação de artefatos.

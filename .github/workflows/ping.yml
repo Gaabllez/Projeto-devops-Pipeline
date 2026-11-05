@@ -1,0 +1,63 @@
+name: CI - Pipeline de Conectividade
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pipeline-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  connectivity:
+    name: Testes de conectividade
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v6
+
+      - name: Informações da execução
+        run: |
+          echo "================================"
+          echo "PIPELINE DE CI"
+          echo "================================"
+          echo "Repositorio: $GITHUB_REPOSITORY"
+          echo "Branch: $GITHUB_REF_NAME"
+          echo "Commit: $GITHUB_SHA"
+          echo "Iniciado por: $GITHUB_ACTOR"
+
+      - name: Validar estrutura do projeto
+        run: |
+          test -d .github/workflows
+          test -f .github/workflows/ping.yml
+          echo "Estrutura do workflow validada!"
+
+      - name: Teste de conectividade ICMP
+        continue-on-error: true
+        run: |
+          if ping -c 4 -W 5 github.com; then
+            echo "Ping concluido com sucesso."
+          else
+            echo "::warning::Ping sem resposta; ICMP pode estar bloqueado."
+          fi
+
+      - name: Teste HTTP/HTTPS
+        run: |
+          curl --fail --silent --show-error \
+            --max-time 15 \
+            --output /dev/null \
+            --write-out "HTTP status: %{http_code}\n" \
+            https://github.com/
+
+      - name: Resumo final
+        if: always()
+        run: |
+          echo "Pipeline finalizada."
+          echo "Consulte os passos acima para verificar os resultados."
