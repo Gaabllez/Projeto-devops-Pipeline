@@ -34,7 +34,7 @@ Projeto acadêmico de Cultura e Práticas DevOps. O repositório contém um site
 
 ### CI — Integração Contínua (`.github/workflows/ci.yml`)
 
-Dispara em pushes para `feature/*`, `feat/*`, `develop`, `release/*` e `hotfix/*, em Pull Requests para `develop` ou `main`, e manualmente.
+Dispara em pushes para `feature/*`, `feat/*`, `develop`, `release/*` e `hotfix/*`, em Pull Requests para `develop` ou `main`, e manualmente.
 
 1. **Build/validação:** prepara Node.js e instala dependências.
 2. **Lint:** valida HTML e CSS.
