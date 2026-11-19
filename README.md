@@ -96,3 +96,5 @@ Depois, abrir um Pull Request de `feature/minha-melhoria` para `develop`, confer
 - O DAST utiliza OWASP ZAP Baseline contra uma prévia local do site, antes do merge/deploy. O relatório é anexado à execução do workflow.
 - Não há token externo do SonarCloud nem credenciais de aplicação no código.
 - Não ignore alertas do ZAP sem revisar o relatório e justificar a exceção.
+- O arquivo `.zap/rules.tsv` aceita apenas avisos relacionados a cabeçalhos HTTP que o GitHub Pages não permite personalizar no nível do repositório, incluindo a diretiva CSP `frame-ancestors`, além do cache de conteúdo estático público.
+- A política CSP incluída na página via meta tag é complementar; ela não substitui um cabeçalho CSP HTTP. Em uma hospedagem que permita configurar cabeçalhos, remova as exceções correspondentes e configure as proteções no servidor.
