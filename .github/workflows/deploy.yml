@@ -1,6 +1,6 @@
-name: CD - Publicacao do Site
+name: CD - Publicacao Segura no GitHub Pages
 
-# Roda a cada push na main (merge de PR) e sob demanda.
+# A publicacao ocorre somente depois do merge/push na main.
 on:
   push:
     branches:
@@ -8,21 +8,31 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: read
+  security-events: write
 
-# Nunca cancela uma publicacao em andamento, mas enfileira apenas a mais recente.
 concurrency:
   group: pages
   cancel-in-progress: false
 
 jobs:
   validar:
+    name: Build, Lint e Testes
     uses: ./.github/workflows/validate.yml
+
+  seguranca:
+    name: SAST + DAST
+    needs: [validar]
+    uses: ./.github/workflows/security.yml
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
 
   deploy:
     name: Fase 3 - Publicar no GitHub Pages
-    needs: validar
-    # Mesmo disparado manualmente, so publica a partir da main.
+    needs: [validar, seguranca]
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -35,17 +45,17 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Baixar o codigo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Configurar o GitHub Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
 
-      # Publica somente a pasta public/. Testes, scripts e configs nunca vao ao ar.
+      # Publica somente public/: testes, scripts e workflows nao vao ao ar.
       - name: Empacotar o site
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: public
 
       - name: Publicar
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
