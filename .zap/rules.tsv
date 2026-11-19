@@ -1,0 +1,12 @@
+# Excecoes revisadas para o ambiente de demonstracao (site estatico publicado no GitHub Pages).
+# Formato ZAP: ID<TAB>IGNORE|WARN|FAIL<TAB>justificativa.
+# Apenas avisos de cabecalhos HTTP que a hospedagem GitHub Pages nao permite personalizar
+# por repositorio, alem do cache esperado de assets estaticos, sao aceitos aqui.
+# Alertas novos ou nao listados continuam fazendo a etapa DAST falhar.
+10020	IGNORE	GitHub Pages nao permite configurar X-Frame-Options por projeto; revisar ao migrar de hospedagem.
+10021	IGNORE	GitHub Pages nao permite configurar X-Content-Type-Options por projeto; MIME dos arquivos e servido pela plataforma.
+10038	IGNORE	GitHub Pages nao permite configurar CSP como cabecalho HTTP por projeto; a pagina inclui uma CSP complementar via meta.
+10049	IGNORE	Cache de HTML e CSS publicos e esperado para site estatico sem dados privados ou autenticacao.
+10055	IGNORE	A diretiva frame-ancestors so tem efeito como cabecalho CSP HTTP; GitHub Pages nao permite configurar cabecalhos HTTP por projeto.
+10063	IGNORE	GitHub Pages nao permite configurar Permissions-Policy por projeto.
+90004	IGNORE	GitHub Pages nao permite configurar Cross-Origin-Embedder-Policy por projeto.

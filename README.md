@@ -34,13 +34,13 @@ Projeto acadêmico de Cultura e Práticas DevOps. O repositório contém um site
 
 ### CI — Integração Contínua (`.github/workflows/ci.yml`)
 
-Dispara em pushes para `feature/*`, `feat/*`, `develop`, `release/*` e `hotfix/*), em Pull Requests para `develop` ou `main`, e manualmente.
+Dispara em pushes para `feature/*`, `feat/*`, `develop`, `release/*` e `hotfix/*, em Pull Requests para `develop` ou `main`, e manualmente.
 
 1. **Build/validação:** prepara Node.js e instala dependências.
 2. **Lint:** valida HTML e CSS.
 3. **Testes:** executa os testes automatizados do projeto.
 4. **SAST — CodeQL:** analisa estaticamente o JavaScript e publica os resultados na área Security/Code scanning do GitHub.
-5. **DAST — OWASP ZAP:** inicia uma prévia local do site e executa uma varredura baseline. A ação reprova o job quando identifica alertas, para que sejam revisados antes da integração.
+5. **DAST — OWASP ZAP:** inicia uma prévia local do site e executa uma varredura baseline. A ação falha para alertas não aceitos. As exceções específicas do ambiente de hospedagem estão documentadas em `.zap/rules.tsv`; novos alertas continuam bloqueando a integração.
 
 Os jobs dependentes só avançam depois do sucesso das etapas anteriores.
 
@@ -96,3 +96,5 @@ Depois, abrir um Pull Request de `feature/minha-melhoria` para `develop`, confer
 - O DAST utiliza OWASP ZAP Baseline contra uma prévia local do site, antes do merge/deploy. O relatório é anexado à execução do workflow.
 - Não há token externo do SonarCloud nem credenciais de aplicação no código.
 - Não ignore alertas do ZAP sem revisar o relatório e justificar a exceção.
+- O arquivo `.zap/rules.tsv` aceita apenas avisos relacionados a cabeçalhos HTTP que o GitHub Pages não permite personalizar no nível do repositório, incluindo a diretiva CSP `frame-ancestors`, além do cache de conteúdo estático público.
+- A política CSP incluída na página via meta tag é complementar; ela não substitui um cabeçalho CSP HTTP. Em uma hospedagem que permita configurar cabeçalhos, remova as exceções correspondentes e configure as proteções no servidor.
