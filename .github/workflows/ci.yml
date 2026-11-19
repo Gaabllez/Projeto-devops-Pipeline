@@ -1,22 +1,39 @@
-name: CI - Validacao e Testes
+name: CI - Validacao, Testes e Seguranca
 
-# Roda em Pull Requests para a main e sob demanda (aba Actions > Run workflow).
-# Nao ha gatilho de push: um PR vindo de uma branch de feature disparava a CI duas
-# vezes (uma por push e outra por pull_request) com o mesmo resultado.
+# GitFlow: valida pushes em branches de trabalho e PRs antes da integracao.
 on:
+  push:
+    branches:
+      - develop
+      - "feature/**"
+      - "feat/**"
+      - "release/**"
+      - "hotfix/**"
   pull_request:
     branches:
+      - develop
       - main
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: read
+  security-events: write
 
-# Um novo commit no mesmo PR cancela a execucao anterior, que ja ficou desatualizada.
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   validar:
+    name: Build, Lint e Testes
     uses: ./.github/workflows/validate.yml
+
+  seguranca:
+    name: SAST + DAST
+    needs: [validar]
+    uses: ./.github/workflows/security.yml
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
