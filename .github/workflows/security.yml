@@ -1,0 +1,69 @@
+name: Seguranca - SAST e DAST (reutilizavel)
+
+on:
+  workflow_call:
+
+permissions:
+  actions: read
+  contents: read
+  security-events: write
+
+jobs:
+  sast:
+    name: SAST - CodeQL
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - name: Baixar o codigo
+        uses: actions/checkout@v7
+
+      - name: Inicializar analise estatica
+        uses: github/codeql-action/init@v4
+        with:
+          languages: javascript-typescript
+          queries: security-extended
+
+      - name: Executar SAST e publicar resultados
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:javascript-typescript"
+
+  dast:
+    name: DAST - OWASP ZAP
+    needs: [sast]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Baixar o codigo
+        uses: actions/checkout@v7
+
+      - name: Iniciar previa local do site
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8080 --bind 0.0.0.0 --directory public > /tmp/devops-site.log 2>&1 &
+          echo $! > /tmp/devops-site.pid
+          for attempt in $(seq 1 20); do
+            if curl --fail --silent http://127.0.0.1:8080/ -o /dev/null; then
+              echo "Site de teste disponivel em http://127.0.0.1:8080/"
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/devops-site.log
+          echo "::error::A previa local do site nao iniciou."
+          exit 1
+
+      - name: Executar DAST - OWASP ZAP Baseline
+        uses: zaproxy/action-baseline@v0.15.0
+        with:
+          target: "http://127.0.0.1:8080/"
+          fail_action: true
+          allow_issue_writing: false
+          artifact_name: zap-dast-report
