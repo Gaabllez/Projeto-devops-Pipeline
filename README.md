@@ -1,110 +1,98 @@
-# Projeto DevOps — CI/CD com GitHub Actions
+# Projeto DevOps — CI/CD, GitFlow e DevSecOps
 
-<!-- Troque SEU_USUARIO pelo seu usuário do GitHub (e o nome do repositório, se for diferente). -->
-![CI](https://github.com/SEU_USUARIO/projeto-devops-ci-cd/actions/workflows/ci.yml/badge.svg?event=pull_request)
-![CD](https://github.com/SEU_USUARIO/projeto-devops-ci-cd/actions/workflows/deploy.yml/badge.svg)
+[![CI](https://github.com/Gaabllez/Projeto-devops-Pipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/Gaabllez/Projeto-devops-Pipeline/actions/workflows/ci.yml)
+[![CD](https://github.com/Gaabllez/Projeto-devops-Pipeline/actions/workflows/deploy.yml/badge.svg)](https://github.com/Gaabllez/Projeto-devops-Pipeline/actions/workflows/deploy.yml)
 
-## Sobre
-Projeto acadêmico demonstrativo de integração contínua (CI), testes automatizados e publicação contínua (CD) usando GitHub Actions e GitHub Pages.
-
-O site em si é uma página estática simples (`public/`); o foco do projeto é a **pipeline** que valida, testa e publica essa página.
+Projeto acadêmico de Cultura e Práticas DevOps. O repositório contém um site estático em HTML/CSS e uma esteira automatizada no GitHub Actions.
 
 ## Tecnologias
-- HTML5 e CSS3
-- Node.js (validadores e testes, sem dependências externas)
-- Git e GitHub
-- GitHub Actions
-- GitHub Pages
 
-## Estrutura do projeto
+- HTML5 e CSS3
+- Node.js 22 e testes nativos com `node:test`
+- Git e GitHub com GitFlow
+- GitHub Actions e GitHub Pages
+- CodeQL para SAST (análise estática)
+- OWASP ZAP Baseline para DAST (análise dinâmica)
+
+## Estrutura
+
 ```text
 .
-├── public/                  # o site (é só esta pasta que vai ao ar)
+├── public/                  # site publicado
 │   ├── index.html
 │   └── style.css
-├── scripts/
-│   ├── lint-html.js         # comando: npm run lint:html
-│   ├── lint-css.js          # comando: npm run lint:css
-│   └── lib/                 # validadores de HTML e CSS
-├── tests/                   # testes automatizados (node:test)
-├── .github/
-│   ├── dependabot.yml       # mantém as versões das actions atualizadas
-│   └── workflows/
-│       ├── validate.yml     # fases 1 e 2 (reutilizável)
-│       ├── ci.yml           # CI: roda nos Pull Requests
-│       └── deploy.yml       # CD: valida e publica no Pages
-├── .gitignore
-└── package.json
+├── scripts/                 # validadores de HTML e CSS
+├── tests/                   # testes automatizados e de regressão
+└── .github/workflows/
+    ├── validate.yml         # lint e testes reutilizáveis
+    ├── security.yml         # SAST + DAST reutilizáveis
+    ├── ci.yml                # CI em branches e Pull Requests
+    └── deploy.yml            # CD após integração na main
 ```
 
-## Pipeline
-A validação é definida **uma única vez** em `validate.yml` (workflow reutilizável) e chamada pela CI e pela CD.
+## Esteira CI/CD + DevSecOps
 
-| Fase | O que faz | Comando local |
-|---|---|---|
-| 1 | Valida o HTML (estrutura, tags, atributos) e o CSS (sintaxe) | `npm run lint` |
-| 2 | Executa os testes automatizados | `npm test` |
-| 3 | Publica a pasta `public/` no GitHub Pages (só na CD) | — |
+### CI — Integração Contínua (`.github/workflows/ci.yml`)
 
-- **`ci.yml`** roda em Pull Requests para `main` e manualmente (aba *Actions → Run workflow*). Executa as fases 1 e 2.
-- **`deploy.yml`** roda a cada push na `main` (ou seja, após o merge de um PR) e manualmente. Executa as fases 1 e 2 e, se passarem, a fase 3. Só publica a partir da `main`.
+Dispara em pushes para `feature/*`, `feat/*`, `develop`, `release/*` e `hotfix/*), em Pull Requests para `develop` ou `main`, e manualmente.
 
-> A CI não roda em push de branches de feature: o Pull Request já a dispara, e rodar nos dois gerava a mesma execução em duplicidade.
+1. **Build/validação:** prepara Node.js e instala dependências.
+2. **Lint:** valida HTML e CSS.
+3. **Testes:** executa os testes automatizados do projeto.
+4. **SAST — CodeQL:** analisa estaticamente o JavaScript e publica os resultados na área Security/Code scanning do GitHub.
+5. **DAST — OWASP ZAP:** inicia uma prévia local do site e executa uma varredura baseline. A ação reprova o job quando identifica alertas, para que sejam revisados antes da integração.
 
-### O que a Fase 1 verifica
-- **HTML:** `<!DOCTYPE html>`, `lang`, `charset` UTF-8, `viewport`, `<title>` preenchido, um `<main>`, um único `<h1>` e hierarquia de títulos sem saltos; tags fechadas e aninhadas corretamente; atributos sem aspas soltas nem repetidos; `id` únicos; `<img>` com `alt`; elementos obsoletos.
-- **CSS:** chaves e parênteses com par, comentários e textos entre aspas fechados, blocos com seletor, declarações no formato `propriedade: valor`, `;` faltando e cores hexadecimais válidas.
+Os jobs dependentes só avançam depois do sucesso das etapas anteriores.
 
-### O que a Fase 2 verifica
-- **Conteúdo do site:** `public/` com `index.html` e `style.css` não vazios, página em `pt-BR`, título/descrição/`h1` preenchidos, seções com título, todos os arquivos locais referenciados existem (ex.: o link para `style.css`) e as classes usadas no HTML existem no CSS.
-- **Os próprios validadores:** há um teste para cada defeito conhecido (h1 removido, tag mal fechada, CSS quebrado, `style.css` apagado etc.) e testes de que HTML/CSS válidos **não** são reprovados. Se alguém enfraquecer um validador, a pipeline avisa.
+### CD — Entrega Contínua (`.github/workflows/deploy.yml`)
 
-## Testar localmente
-Requer Node.js 22 ou superior (o Node 20 já saiu de suporte).
-
-```bash
-npm ci            # instala (não há dependências externas)
-npm run lint      # fase 1: valida HTML e CSS
-npm test          # fase 2: testes
-npm run check     # tudo de uma vez: lint + testes
-```
-
-Para ver o site no navegador, abra `public/index.html` ou rode um servidor local:
-
-```bash
-python3 -m http.server --directory public 8000   # depois acesse http://localhost:8000
-```
-
-Para validar outro arquivo ou pasta: `node scripts/lint-html.js caminho/do/arquivo.html`.
-
-## Fluxo GitFlow para demonstração
-1. Criar uma branch de funcionalidade: `git switch -c feature/melhora-site`
-2. Fazer uma alteração em `public/index.html` ou `public/style.css`.
-3. Conferir localmente: `npm run check`
-4. Registrar: `git add .` e `git commit -m "feat: melhora o site"`
-5. Enviar: `git push -u origin feature/melhora-site`
-6. No GitHub, abrir um Pull Request da branch `feature/melhora-site` para `main` (é o PR que dispara a CI).
-7. Conferir se a CI passou.
-8. Fazer o merge do Pull Request.
-9. Conferir a execução da CD (aba *Actions*) e abrir o site publicado.
-
-### Demonstrar a CI falhando
-Em uma branch de teste, estrague o HTML de propósito — por exemplo, apague o `<main>` ou um `</section>` de `public/index.html` — e abra o PR. A Fase 1 deve reprovar apontando o arquivo, a linha e a regra, e o botão de merge fica bloqueado quando a proteção da `main` (abaixo) está ativa.
+Dispara após push/merge na `main` ou por execução manual. Repete lint, testes, SAST e DAST. O deploy só inicia se todas as validações de segurança e qualidade passarem. A pasta `public/` é publicada no GitHub Pages pelas actions oficiais.
 
 ## Configurar o GitHub Pages
-A publicação usa as actions oficiais do GitHub (`upload-pages-artifact` e `deploy-pages`), **sem** a branch `gh-pages`. Antes da primeira execução da CD:
 
-1. No repositório, abra **Settings → Pages**.
-2. Em **Build and deployment → Source**, escolha **GitHub Actions**.
-3. Dê push na `main` (ou rode a CD manualmente). O endereço do site aparece no resumo da execução e em **Settings → Pages**.
+No repositório, acesse **Settings → Pages → Build and deployment** e selecione **Source: GitHub Actions**. A publicação será feita pelo workflow `deploy.yml`; não é necessário criar a branch `gh-pages`.
 
-## Proteger a branch `main`
-Para que ninguém publique sem passar pela CI:
+## Testar localmente
 
-1. Abra **Settings → Rules → Rulesets** (ou **Branches → Add branch protection rule**) e crie uma regra para a branch `main`.
-2. Ative **Require a pull request before merging**.
-3. Ative **Require status checks to pass** e selecione o check da CI. Ele aparece com o nome `validar / Validar e testar` (confira o nome exato na aba *Checks* de um PR; o check só aparece na busca depois de ter rodado ao menos uma vez).
+Requer Node.js 22 ou superior.
 
-## Observações
-- Os validadores de HTML e CSS (`scripts/lib/`) são próprios e **sem dependências**, de propósito: o projeto instala instantaneamente e a lógica fica fácil de explicar. Eles cobrem os erros estruturais mais comuns, mas **não substituem** o validador oficial do W3C nem ferramentas completas como `html-validate` e `stylelint`. Para trocar por elas: `npm install --save-dev html-validate stylelint` e ajuste os scripts `lint:html` e `lint:css` no `package.json`.
-- O Dependabot (`.github/dependabot.yml`) abre um Pull Request quando uma action usada nos workflows tem versão nova.
+```bash
+npm ci
+npm run check
+```
+
+## Fluxo GitFlow para apresentação
+
+- `main`: versão estável/publicada.
+- `develop`: branch de integração.
+- `feature/*`: desenvolvimento de funcionalidade.
+- `release/*`: preparação de uma versão.
+- `hotfix/*`: correção urgente a partir da versão estável.
+
+Demonstração sugerida:
+
+```bash
+# atualizar a branch de integração
+git switch develop
+git pull origin develop
+
+# criar uma funcionalidade
+git switch -c feature/minha-melhoria
+
+# alterar arquivos e validar
+npm run check
+
+# registrar e enviar a mudança
+git add .
+git commit -m "feat: descreve a melhoria"
+git push -u origin feature/minha-melhoria
+```
+
+Depois, abrir um Pull Request de `feature/minha-melhoria` para `develop`, conferir os checks na aba **Actions** e fazer o merge. Para preparar uma versão, abrir um Pull Request de `develop` para `main`; após o merge, a CD executa e publica o site.
+
+## Segurança
+
+- O SAST utiliza CodeQL com o conjunto de consultas `security-extended`; o resultado fica disponível em **Security → Code scanning**.
+- O DAST utiliza OWASP ZAP Baseline contra uma prévia local do site, antes do merge/deploy. O relatório é anexado à execução do workflow.
+- Não há token externo do SonarCloud nem credenciais de aplicação no código.
+- Não ignore alertas do ZAP sem revisar o relatório e justificar a exceção.
